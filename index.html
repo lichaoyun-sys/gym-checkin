@@ -3,92 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>课时打卡</title>
-
+<title>涛哥集训营</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',sans-serif;background:#f5f5f5;min-height:100vh;color:#1a1a1a}
-.app{max-width:480px;margin:0 auto;background:#f5f5f5;min-height:100vh}
-.tab-bar{display:flex;background:#fff;border-bottom:1px solid #eee}
+.app{max-width:480px;margin:0 auto;background:#f5f5f5;min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;border-bottom:1px solid #eee;gap:10px}
+.brand{font-size:15px;font-weight:700;color:#1a1a1a}.sync{font-size:11px;color:#999;text-align:right;line-height:1.4}.sync.ok{color:#3B6D11}.sync.err{color:#A32D2D}
+.tab-bar{display:flex;background:#fff;border-bottom:1px solid #eee;position:sticky;top:0;z-index:2}
 .tab{flex:1;padding:12px 0;font-size:14px;text-align:center;cursor:pointer;color:#999;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none}
 .tab.active{color:#378ADD;border-bottom-color:#378ADD;font-weight:500}
 .page{display:none;padding:16px}.page.active{display:block}
 .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-.stat-card{background:#fff;border-radius:12px;padding:12px 8px;text-align:center}
-.stat-num{font-size:24px;font-weight:600;color:#1a1a1a}
-.stat-label{font-size:11px;color:#999;margin-top:2px}
-.big-checkin-btn{background:#378ADD;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:500;cursor:pointer;width:100%;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px}
-.big-checkin-btn:active{opacity:0.85}
-.pulse-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.75);flex-shrink:0}
-.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px}
-.card-title{font-size:12px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:12px}
-.student-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0f0f0}
-.student-item:last-child{border-bottom:none}
-.avatar{width:40px;height:40px;border-radius:50%;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#185FA5;flex-shrink:0}
-.student-info{flex:1;min-width:0}
-.student-name{font-size:15px;font-weight:500;color:#1a1a1a}
-.student-meta{font-size:12px;color:#999;margin-top:2px}
-.badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500}
-.badge-ok{background:#EAF3DE;color:#3B6D11}
-.badge-low{background:#FAEEDA;color:#854F0B}
-.badge-empty{background:#FCEBEB;color:#A32D2D}
+.stat-card{background:#fff;border-radius:12px;padding:12px 8px;text-align:center}.stat-num{font-size:24px;font-weight:600;color:#1a1a1a}.stat-label{font-size:11px;color:#999;margin-top:2px}
+.big-checkin-btn{background:#378ADD;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:500;cursor:pointer;width:100%;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px}.big-checkin-btn:active{opacity:0.85}.pulse-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.75);flex-shrink:0}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px}.card-title{font-size:12px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:12px}
+.student-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f0f0f0}.student-item:last-child{border-bottom:none}.avatar{width:40px;height:40px;border-radius:50%;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#185FA5;flex-shrink:0}.student-info{flex:1;min-width:0}.student-name{font-size:15px;font-weight:500;color:#1a1a1a}.student-meta{font-size:12px;color:#999;margin-top:2px}
+.badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500}.badge-ok{background:#EAF3DE;color:#3B6D11}.badge-low{background:#FAEEDA;color:#854F0B}.badge-empty{background:#FCEBEB;color:#A32D2D}
 .edit-btn{padding:6px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:13px;color:#555;cursor:pointer;flex-shrink:0}
-.form-group{margin-bottom:12px}
-.form-label{font-size:12px;color:#999;margin-bottom:5px}
-input[type=text],input[type=number],select{width:100%;padding:11px 12px;border:1px solid #e0e0e0;border-radius:10px;font-size:15px;color:#1a1a1a;background:#fff;outline:none;-webkit-appearance:none;appearance:none}
-input:focus,select:focus{border-color:#378ADD}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.btn{width:100%;padding:13px;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;border:none}
-.btn:active{opacity:0.8}
-.btn-primary{background:#378ADD;color:#fff}
-.btn-secondary{background:#f0f0f0;color:#555}
-.btn-danger{background:#FCEBEB;color:#A32D2D}
-.checkin-panel{background:#E6F1FB;border-radius:16px;padding:24px 20px;text-align:center;margin-top:12px}
-.checkin-name{font-size:22px;font-weight:600;color:#042C53;margin-bottom:4px}
-.checkin-sessions{font-size:14px;color:#185FA5;margin-bottom:10px}
-.checkin-hint{font-size:13px;color:#378ADD;margin-bottom:20px;padding:10px 14px;background:rgba(255,255,255,0.65);border-radius:10px;line-height:1.6}
-.confirm-btn{width:100%;padding:16px;border-radius:12px;border:none;font-size:17px;font-weight:600;cursor:pointer}
-.confirm-btn-active{background:#378ADD;color:#fff}
-.confirm-btn-done{background:#3B6D11;color:#fff}
-.history-item{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #f0f0f0}
-.history-item:last-child{border-bottom:none}
-.history-name{font-size:14px;font-weight:500;color:#1a1a1a}
-.history-time{font-size:11px;color:#bbb;margin-top:2px}
-.history-right{text-align:right}
-.delta-consume{font-size:14px;font-weight:600;color:#A32D2D}
-.delta-add{font-size:14px;font-weight:600;color:#3B6D11}
-.delta-neutral{font-size:14px;font-weight:600;color:#888}
-.remaining{font-size:11px;color:#bbb;margin-top:2px}
-.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:100;display:none;align-items:flex-end;justify-content:center}
-.modal-overlay.show{display:flex}
-.modal-sheet{background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 36px;width:100%;max-width:480px}
-.modal-handle{width:36px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 16px}
-.modal-title{font-size:17px;font-weight:600;margin-bottom:16px;color:#1a1a1a}
-.delta-row{display:flex;gap:8px}
-.delta-row input{flex:1}
-.delta-apply-btn{padding:11px 16px;border-radius:10px;border:1px solid #ddd;background:#f5f5f5;font-size:14px;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0}
-.divider{height:1px;background:#f0f0f0;margin:14px 0}
-.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-.empty{text-align:center;padding:40px 20px;color:#bbb;font-size:14px}
-.alert-box{padding:12px 14px;border-radius:10px;font-size:14px;margin-top:12px;color:#A32D2D;background:#FCEBEB;line-height:1.6}
-
-.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.filter-grid select{font-size:14px}
-.filter-hint{font-size:11px;color:#aaa;line-height:1.5;margin-top:4px}
-.history-main{flex:1;min-width:0;padding-right:10px}
-.history-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
-.history-delete-btn{padding:6px 10px;border-radius:8px;border:1px solid #F1C5C5;background:#fff;color:#A32D2D;font-size:12px;cursor:pointer;white-space:nowrap}
-.history-delete-btn.armed{background:#FCEBEB;font-weight:600}
-.summary-line{font-size:12px;color:#999;margin:0 0 10px 0}
+.form-group{margin-bottom:12px}.form-label{font-size:12px;color:#999;margin-bottom:5px}input[type=text],input[type=number],input[type=email],input[type=password],select{width:100%;padding:11px 12px;border:1px solid #e0e0e0;border-radius:10px;font-size:15px;color:#1a1a1a;background:#fff;outline:none;-webkit-appearance:none;appearance:none}input:focus,select:focus{border-color:#378ADD}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{width:100%;padding:13px;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;border:none}.btn:active{opacity:0.8}.btn-primary{background:#378ADD;color:#fff}.btn-secondary{background:#f0f0f0;color:#555}.btn-danger{background:#FCEBEB;color:#A32D2D}.btn-green{background:#EAF3DE;color:#3B6D11}.btn-small{padding:8px 10px;font-size:12px;border-radius:8px;width:auto}
+.checkin-panel{background:#E6F1FB;border-radius:16px;padding:24px 20px;text-align:center;margin-top:12px}.checkin-name{font-size:22px;font-weight:600;color:#042C53;margin-bottom:4px}.checkin-sessions{font-size:14px;color:#185FA5;margin-bottom:10px}.checkin-hint{font-size:13px;color:#378ADD;margin-bottom:20px;padding:10px 14px;background:rgba(255,255,255,0.65);border-radius:10px;line-height:1.6}.confirm-btn{width:100%;padding:16px;border-radius:12px;border:none;font-size:17px;font-weight:600;cursor:pointer}.confirm-btn-active{background:#378ADD;color:#fff}.confirm-btn-done{background:#3B6D11;color:#fff}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #f0f0f0}.history-item:last-child{border-bottom:none}.history-main{flex:1;min-width:0;padding-right:10px}.history-name{font-size:14px;font-weight:500;color:#1a1a1a}.history-time{font-size:11px;color:#bbb;margin-top:2px}.history-right{text-align:right}.history-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}.delta-consume{font-size:14px;font-weight:600;color:#A32D2D}.delta-add{font-size:14px;font-weight:600;color:#3B6D11}.delta-neutral{font-size:14px;font-weight:600;color:#888}.remaining{font-size:11px;color:#bbb;margin-top:2px}.history-delete-btn{padding:6px 10px;border-radius:8px;border:1px solid #F1C5C5;background:#fff;color:#A32D2D;font-size:12px;cursor:pointer;white-space:nowrap}.history-delete-btn.armed{background:#FCEBEB;font-weight:600}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:100;display:none;align-items:flex-end;justify-content:center}.modal-overlay.show{display:flex}.modal-sheet{background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 36px;width:100%;max-width:480px}.modal-handle{width:36px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 16px}.modal-title{font-size:17px;font-weight:600;margin-bottom:16px;color:#1a1a1a}.delta-row{display:flex;gap:8px}.delta-row input{flex:1}.delta-apply-btn{padding:11px 16px;border-radius:10px;border:1px solid #ddd;background:#f5f5f5;font-size:14px;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0}.divider{height:1px;background:#f0f0f0;margin:14px 0}.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.empty{text-align:center;padding:40px 20px;color:#bbb;font-size:14px}.alert-box{padding:12px 14px;border-radius:10px;font-size:14px;margin-top:12px;color:#A32D2D;background:#FCEBEB;line-height:1.6}.info-box{padding:12px 14px;border-radius:10px;font-size:13px;margin-top:12px;color:#185FA5;background:#E6F1FB;line-height:1.6}
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}.filter-grid select{font-size:14px}.filter-hint{font-size:11px;color:#aaa;line-height:1.5;margin-top:4px}.summary-line{font-size:12px;color:#999;margin:0 0 10px 0}.hidden{display:none!important}.auth-wrap{padding:22px 16px}.auth-logo{text-align:center;margin:16px 0 20px}.auth-logo h1{font-size:24px;margin-bottom:6px}.auth-logo p{font-size:13px;color:#888;line-height:1.5}.two-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.account-line{font-size:13px;color:#666;word-break:break-all;line-height:1.6}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.loading{opacity:.6;pointer-events:none}
 </style>
 </head>
 <body>
+<div id="auth-page" class="app auth-wrap">
+  <div class="auth-logo"><h1>涛哥集训营</h1><p>登录后可在手机、电脑跨平台同步数据</p></div>
+  <div class="card">
+    <div class="card-title">账号登录</div>
+    <div class="form-group"><div class="form-label">邮箱</div><input type="email" id="auth-email" placeholder="输入邮箱"></div>
+    <div class="form-group"><div class="form-label">密码</div><input type="password" id="auth-password" placeholder="至少 6 位密码"></div>
+    <div class="two-actions">
+      <button class="btn btn-primary" onclick="login()">登录</button>
+      <button class="btn btn-secondary" onclick="signup()">注册</button>
+    </div>
+    <div id="auth-msg" class="info-box hidden"></div>
+  </div>
+</div>
 
-<div class="app">
+<div id="main-app" class="app hidden">
+  <div class="topbar"><div class="brand">涛哥集训营</div><div id="sync-status" class="sync">未同步</div></div>
   <div class="tab-bar">
     <button class="tab active" id="tab-students" onclick="showTab('students',this)">学员管理</button>
     <button class="tab" id="tab-checkin" onclick="showTab('checkin',this)">课后打卡</button>
     <button class="tab" id="tab-history" onclick="showTab('history',this)">消课记录</button>
+    <button class="tab" id="tab-account" onclick="showTab('account',this)">我的</button>
   </div>
 
   <div id="page-students" class="page active">
@@ -97,9 +62,7 @@ input:focus,select:focus{border-color:#378ADD}
       <div class="stat-card"><div class="stat-num" id="s-sessions">0</div><div class="stat-label">总剩余课时</div></div>
       <div class="stat-card"><div class="stat-num" id="s-low">0</div><div class="stat-label">课时不足</div></div>
     </div>
-    <button class="big-checkin-btn" onclick="showTab('checkin', document.getElementById('tab-checkin'))">
-      <div class="pulse-dot"></div>上课打卡
-    </button>
+    <button class="big-checkin-btn" onclick="showTab('checkin', document.getElementById('tab-checkin'))"><div class="pulse-dot"></div>上课打卡</button>
     <div class="card">
       <div class="card-title">添加新学员</div>
       <div class="form-row" style="margin-bottom:10px">
@@ -112,409 +75,100 @@ input:focus,select:focus{border-color:#378ADD}
   </div>
 
   <div id="page-checkin" class="page">
-    <div class="card">
-      <div class="card-title">选择学员</div>
-      <select id="checkin-select" onchange="updateCheckin()">
-        <option value="">-- 请选择上课学员 --</option>
-      </select>
-      <div id="checkin-area"></div>
-    </div>
+    <div class="card"><div class="card-title">选择学员</div><select id="checkin-select" onchange="updateCheckin()"><option value="">-- 请选择上课学员 --</option></select><div id="checkin-area"></div></div>
   </div>
 
   <div id="page-history" class="page">
     <div class="card" style="margin-bottom:12px">
-      <div class="filter-grid">
-        <select id="history-filter" onchange="renderHistory()">
-          <option value="">全部学员</option>
-        </select>
-        <select id="history-year" onchange="renderMonthFilter(); renderHistory()">
-          <option value="">全部年份</option>
-        </select>
-      </div>
-      <div class="filter-grid" style="margin-bottom:0">
-        <select id="history-month" onchange="renderHistory()">
-          <option value="">全部月份</option>
-        </select>
-        <select id="history-action" onchange="renderHistory()">
-          <option value="">全部类型</option>
-          <option value="上课打卡">上课打卡</option>
-          <option value="手动加课">手动加课</option>
-          <option value="手动退课">手动退课</option>
-          <option value="初始录入">初始录入</option>
-          <option value="删除学员">删除学员</option>
-        </select>
-      </div>
-      <div class="filter-hint">删除记录会同时撤销该记录对应的课时变化。例如删除一次“上课打卡”，会把该学员课时加回 1 节。</div>
+      <div class="filter-grid"><select id="history-filter" onchange="renderHistory()"><option value="">全部学员</option></select><select id="history-year" onchange="renderMonthFilter(); renderHistory()"><option value="">全部年份</option></select></div>
+      <div class="filter-grid" style="margin-bottom:0"><select id="history-month" onchange="renderHistory()"><option value="">全部月份</option></select><select id="history-action" onchange="renderHistory()"><option value="">全部类型</option><option value="上课打卡">上课打卡</option><option value="手动加课">手动加课</option><option value="手动退课">手动退课</option><option value="初始录入">初始录入</option><option value="删除学员">删除学员</option></select></div>
+      <div class="filter-hint">删除记录会尝试撤销对应课时变化；若学员已被删除，则只删除记录。</div>
     </div>
+    <div class="toolbar"><button class="btn btn-secondary btn-small" onclick="refreshData()">刷新同步</button><button class="btn btn-green btn-small" onclick="exportExcel()">导出 Excel</button></div>
     <div class="card" id="history-list"></div>
+  </div>
+
+  <div id="page-account" class="page">
+    <div class="card"><div class="card-title">当前账号</div><div class="account-line" id="account-email"></div><div class="divider"></div><button class="btn btn-green" onclick="exportExcel()">一键导出 Excel</button><div class="divider"></div><button class="btn btn-secondary" onclick="refreshData()">手动刷新云端数据</button><div id="migrate-box" class="info-box hidden"></div><div class="divider"></div><button class="btn btn-danger" onclick="logout()">退出登录</button></div>
   </div>
 </div>
 
 <div class="modal-overlay" id="modal-edit" onclick="handleOverlayClick(event)">
   <div class="modal-sheet" onclick="event.stopPropagation()">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-title">编辑课时</div>
-    <div class="form-group">
-      <div class="form-label">直接设置课时总数</div>
-      <input type="number" id="edit-total" min="0" placeholder="输入新的课时数">
-    </div>
+    <div class="modal-handle"></div><div class="modal-title" id="modal-title">编辑课时</div>
+    <div class="form-group"><div class="form-label">直接设置课时总数</div><input type="number" id="edit-total" min="0" placeholder="输入新的课时数"></div>
     <div class="divider"></div>
-    <div class="form-group">
-      <div class="form-label">加课 / 退课（正数加，负数退）</div>
-      <div class="delta-row">
-        <input type="number" id="edit-delta" placeholder="如 10 或 -5">
-        <button class="delta-apply-btn" onclick="applyDelta()">应用</button>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="saveEdit()">保存</button>
-    </div>
-    <div class="divider"></div>
-    <button class="btn btn-danger" id="delete-btn" onclick="deleteStudent()">删除该学员</button>
+    <div class="form-group"><div class="form-label">加课 / 退课（正数加，负数退）</div><div class="delta-row"><input type="number" id="edit-delta" placeholder="如 10 或 -5"><button class="delta-apply-btn" onclick="applyDelta()">应用</button></div></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveEdit()">保存</button></div>
+    <div class="divider"></div><button class="btn btn-danger" id="delete-btn" onclick="deleteStudent()">删除该学员</button>
   </div>
 </div>
 
 <script>
-var STORAGE_KEY = 'gym_checkin_v1_data';
-var students = [];
-var records = [];
-var editId = null;
-var activeTab = 'students';
-var deleteArmed = false;
-var deleteTimer = null;
-var armedRecordId = null;
-var recordDeleteTimer = null;
+const SUPABASE_URL = 'https://qqwhjftivnfkobtjbujuw.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_i1-ohsKZBVHcxxnosKEZ4g_mYwTvw24';
+const OLD_STORAGE_KEY = 'gym_checkin_v1_data';
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let currentUser = null;
+let students = [];
+let records = [];
+let editId = null;
+let activeTab = 'students';
+let deleteArmed = false;
+let deleteTimer = null;
+let armedRecordId = null;
+let recordDeleteTimer = null;
 
-function loadData() {
-  try {
-    var raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    var data = JSON.parse(raw);
-    students = Array.isArray(data.students) ? data.students : [];
-    records = Array.isArray(data.records) ? data.records : [];
-    records = records.map(normalizeRecord);
-  } catch (e) {
-    console.warn('读取本地数据失败', e);
-    students = [];
-    records = [];
-  }
-}
+function setSync(msg, ok=true){const el=document.getElementById('sync-status'); if(!el)return; el.textContent=msg; el.className='sync '+(ok?'ok':'err');}
+function showAuthMsg(msg){const el=document.getElementById('auth-msg'); el.textContent=msg; el.classList.remove('hidden');}
+function clearAuthMsg(){document.getElementById('auth-msg').classList.add('hidden');}
+function setLoading(on){document.body.classList.toggle('loading', !!on);}
+function pad(n){return n<10?'0'+n:''+n;}
+function initials(name){return (name||'').slice(0,2);}
+function escapeHtml(str){return String(str ?? '').replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+function fmtTime(iso){const d=iso?new Date(iso):new Date(); return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
+function getYear(iso){return new Date(iso).getFullYear()+'';}
+function getMonth(iso){return (new Date(iso).getMonth()+1)+'';}
+function badgeHtml(s){if(s.sessions<=0)return '<span class="badge badge-empty">已用完</span>'; if(s.sessions<=3)return '<span class="badge badge-low">即将用完</span>'; return '<span class="badge badge-ok">正常</span>';}
+function activeUserId(){return currentUser && currentUser.id;}
 
-function saveData() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ students: students, records: records }));
-  } catch (e) {
-    alert('本地保存失败：可能是浏览器存储空间不足或隐私模式限制。');
-    console.warn('保存本地数据失败', e);
-  }
-}
+async function signup(){clearAuthMsg(); const email=document.getElementById('auth-email').value.trim(); const password=document.getElementById('auth-password').value; if(!email||!password){showAuthMsg('请输入邮箱和密码');return;} if(password.length<6){showAuthMsg('密码至少 6 位');return;} setLoading(true); const {data,error}=await client.auth.signUp({email,password}); setLoading(false); if(error){showAuthMsg('注册失败：'+error.message);return;} if(data.session){await enterApp(data.session.user);} else {showAuthMsg('注册成功。如果你开启了邮箱验证，请先去邮箱确认后再登录。');}}
+async function login(){clearAuthMsg(); const email=document.getElementById('auth-email').value.trim(); const password=document.getElementById('auth-password').value; if(!email||!password){showAuthMsg('请输入邮箱和密码');return;} setLoading(true); const {data,error}=await client.auth.signInWithPassword({email,password}); setLoading(false); if(error){showAuthMsg('登录失败：'+error.message);return;} await enterApp(data.user);}
+async function logout(){await client.auth.signOut(); currentUser=null; students=[]; records=[]; document.getElementById('main-app').classList.add('hidden'); document.getElementById('auth-page').classList.remove('hidden');}
+async function enterApp(user){currentUser=user; document.getElementById('auth-page').classList.add('hidden'); document.getElementById('main-app').classList.remove('hidden'); document.getElementById('account-email').textContent=user.email || user.id; await refreshData(); checkMigration();}
 
-function uid() { return Date.now() + '_' + Math.random().toString(36).slice(2); }
-function pad(n) { return n < 10 ? '0'+n : ''+n; }
-function nowISO() { return new Date().toISOString(); }
-function ts(iso) {
-  var d = iso ? new Date(iso) : new Date();
-  return d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-}
-function escapeHtml(str) {
-  return String(str || '').replace(/[&<>'"]/g, function(ch) {
-    return ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[ch];
-  });
-}
-function initials(name) { return (name||'').slice(0,2); }
-function badgeHtml(s) {
-  if (s.sessions <= 0) return '<span class="badge badge-empty">已用完</span>';
-  if (s.sessions <= 3) return '<span class="badge badge-low">即将用完</span>';
-  return '<span class="badge badge-ok">正常</span>';
-}
+async function refreshData(){if(!activeUserId())return; setSync('同步中...', true); setLoading(true); try{const [{data:stu,error:e1},{data:rec,error:e2}]=await Promise.all([
+  client.from('students').select('*').order('created_at',{ascending:true}),
+  client.from('records').select('*').order('record_time',{ascending:false})
+]); if(e1)throw e1; if(e2)throw e2; students=(stu||[]).map(s=>({id:s.id,name:s.name,sessions:s.sessions,created_at:s.created_at})); records=(rec||[]).map(r=>({id:r.id,sid:r.student_id,student:r.student_name,action:r.action,delta:r.delta,sessions:r.sessions,iso:r.record_time})); renderAll(); setSync('已同步 '+new Date().toLocaleTimeString().slice(0,5), true);}catch(e){console.error(e); setSync('同步失败', false); alert('读取云端数据失败：'+e.message);}finally{setLoading(false);}}
+function renderAll(){renderStudents(); renderCheckinSelect(); renderHistoryFilter(); renderYearFilter(); renderMonthFilter(); renderHistory();}
+function showTab(t,el){activeTab=t; document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.page').forEach(x=>x.classList.remove('active')); el.classList.add('active'); document.getElementById('page-'+t).classList.add('active'); if(t==='students')renderStudents(); if(t==='checkin')renderCheckinSelect(); if(t==='history'){renderHistoryFilter();renderYearFilter();renderMonthFilter();renderHistory();} if(t==='account')checkMigration();}
+function updateStats(){document.getElementById('s-total').textContent=students.length; document.getElementById('s-sessions').textContent=students.reduce((a,s)=>a+(Number(s.sessions)||0),0); document.getElementById('s-low').textContent=students.filter(s=>s.sessions<=3).length;}
+function renderStudents(){updateStats(); const list=document.getElementById('student-list'); if(!students.length){list.innerHTML='<div class="empty">暂无学员，请在上方添加</div>'; return;} list.innerHTML=students.map(s=>'<div class="card"><div class="student-item" style="border:none;padding:0"><div class="avatar">'+escapeHtml(initials(s.name))+'</div><div class="student-info"><div class="student-name">'+escapeHtml(s.name)+'</div><div class="student-meta">剩余 <b>'+s.sessions+'</b> 节课时</div></div>'+badgeHtml(s)+'<button class="edit-btn" onclick="openEdit(\''+s.id+'\')">编辑</button></div></div>').join('');}
+async function addStudent(){const nameEl=document.getElementById('new-name'), sesEl=document.getElementById('new-sessions'); const name=nameEl.value.trim(); const sessions=parseInt(sesEl.value)||0; if(!name){alert('请输入学员姓名');return;} setLoading(true); try{const {data:s,error:e1}=await client.from('students').insert({user_id:activeUserId(),name,sessions}).select().single(); if(e1)throw e1; const {error:e2}=await client.from('records').insert({user_id:activeUserId(),student_id:s.id,student_name:name,action:'初始录入',delta:sessions,sessions:sessions}); if(e2)throw e2; nameEl.value=''; sesEl.value=''; await refreshData();}catch(e){alert('添加失败：'+e.message);}finally{setLoading(false);}}
+function openEdit(id){editId=id; deleteArmed=false; clearTimeout(deleteTimer); const s=students.find(x=>x.id===id); document.getElementById('modal-title').textContent='编辑课时 — '+s.name; document.getElementById('edit-total').value=s.sessions; document.getElementById('edit-delta').value=''; document.getElementById('delete-btn').textContent='删除该学员'; document.getElementById('modal-edit').classList.add('show');}
+function closeModal(){document.getElementById('modal-edit').classList.remove('show'); editId=null; deleteArmed=false;}
+function handleOverlayClick(e){if(e.target===document.getElementById('modal-edit'))closeModal();}
+function applyDelta(){const delta=parseInt(document.getElementById('edit-delta').value)||0; if(!delta){alert('请输入数量');return;} const s=students.find(x=>x.id===editId); document.getElementById('edit-total').value=Math.max(0,Number(s.sessions)+delta);}
+async function saveEdit(){const total=parseInt(document.getElementById('edit-total').value); if(isNaN(total)||total<0){alert('请输入有效的课时数');return;} const s=students.find(x=>x.id===editId); const prev=Number(s.sessions); const delta=total-prev; setLoading(true); try{const {error:e1}=await client.from('students').update({sessions:total}).eq('id',editId); if(e1)throw e1; if(delta!==0){const action=delta>0?'手动加课':'手动退课'; const {error:e2}=await client.from('records').insert({user_id:activeUserId(),student_id:s.id,student_name:s.name,action,delta,sessions:total}); if(e2)throw e2;} closeModal(); await refreshData();}catch(e){alert('保存失败：'+e.message);}finally{setLoading(false);}}
+async function deleteStudent(){const btn=document.getElementById('delete-btn'); const s=students.find(x=>x.id===editId); if(!deleteArmed){deleteArmed=true; btn.textContent='再次点击确认删除'; clearTimeout(deleteTimer); deleteTimer=setTimeout(()=>{deleteArmed=false;btn.textContent='删除该学员';},3000); return;} setLoading(true); try{await client.from('records').insert({user_id:activeUserId(),student_id:s.id,student_name:s.name,action:'删除学员',delta:0,sessions:s.sessions}); const {error}=await client.from('students').delete().eq('id',editId); if(error)throw error; closeModal(); await refreshData();}catch(e){alert('删除失败：'+e.message);}finally{setLoading(false);}}
+function renderCheckinSelect(){const sel=document.getElementById('checkin-select'); const cur=sel.value; sel.innerHTML='<option value="">-- 请选择上课学员 --</option>'+students.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'（剩余'+s.sessions+'节）</option>').join(''); if(students.some(s=>s.id===cur))sel.value=cur; document.getElementById('checkin-area').innerHTML='';}
+function updateCheckin(){const id=document.getElementById('checkin-select').value; const area=document.getElementById('checkin-area'); if(!id){area.innerHTML='';return;} const s=students.find(x=>x.id===id); if(s.sessions<=0){area.innerHTML='<div class="alert-box">该学员课时已用完，无法消课。<br>请先在学员页面为其加课。</div>';return;} area.innerHTML='<div class="checkin-panel"><div class="checkin-name">'+escapeHtml(s.name)+'</div><div class="checkin-sessions" id="csub-'+id+'">当前剩余 '+s.sessions+' 节课时</div><div class="checkin-hint">请将手机递给学员<br>由学员本人点击下方按钮确认</div><button class="confirm-btn confirm-btn-active" id="cbtn-'+id+'" onclick="confirmCheckin(\''+id+'\')">确认本次上课，消耗 1 课时</button></div>';}
+async function confirmCheckin(id){const s=students.find(x=>x.id===id); if(!s||s.sessions<=0)return; const next=Math.max(0,Number(s.sessions)-1); setLoading(true); try{const {error:e1}=await client.from('students').update({sessions:next}).eq('id',id); if(e1)throw e1; const {error:e2}=await client.from('records').insert({user_id:activeUserId(),student_id:id,student_name:s.name,action:'上课打卡',delta:-1,sessions:next}); if(e2)throw e2; s.sessions=next; const btn=document.getElementById('cbtn-'+id); if(btn){btn.textContent='已确认签到  剩余 '+next+' 节';btn.className='confirm-btn confirm-btn-done';btn.disabled=true;} const sub=document.getElementById('csub-'+id); if(sub)sub.textContent='打卡成功，当前剩余 '+next+' 节'; await refreshData();}catch(e){alert('打卡失败：'+e.message);}finally{setLoading(false);}}
+function renderHistoryFilter(){const sel=document.getElementById('history-filter'); const cur=sel.value; sel.innerHTML='<option value="">全部学员</option>'+students.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join(''); if(cur)sel.value=cur;}
+function renderYearFilter(){const sel=document.getElementById('history-year'); const cur=sel.value; const years=[...new Set(records.map(r=>getYear(r.iso)))].sort((a,b)=>b-a); sel.innerHTML='<option value="">全部年份</option>'+years.map(y=>'<option value="'+y+'">'+y+'年</option>').join(''); if(years.includes(cur))sel.value=cur;}
+function renderMonthFilter(){const sel=document.getElementById('history-month'); const cur=sel.value; const year=document.getElementById('history-year').value; let base=year?records.filter(r=>getYear(r.iso)===year):records; const months=[...new Set(base.map(r=>getMonth(r.iso)))].sort((a,b)=>Number(a)-Number(b)); sel.innerHTML='<option value="">全部月份</option>'+months.map(m=>'<option value="'+m+'">'+m+'月</option>').join(''); if(months.includes(cur))sel.value=cur;}
+function getFilteredRecords(){const sid=document.getElementById('history-filter').value, year=document.getElementById('history-year').value, month=document.getElementById('history-month').value, action=document.getElementById('history-action').value; return records.filter(r=>(!sid||r.sid===sid)&&(!year||getYear(r.iso)===year)&&(!month||getMonth(r.iso)===month)&&(!action||r.action===action));}
+function renderHistory(){const items=getFilteredRecords(); const list=document.getElementById('history-list'); if(!items.length){list.innerHTML='<div class="empty">暂无记录</div>';return;} const checkins=items.filter(h=>h.action==='上课打卡').length; const net=items.reduce((a,h)=>a+(Number(h.delta)||0),0); list.innerHTML='<div class="summary-line">当前筛选：'+items.length+' 条记录｜上课打卡 '+checkins+' 次｜课时净变化 '+(net>0?'+':'')+net+' 节</div>'+items.map(h=>{const cls=h.delta>0?'delta-add':h.delta<0?'delta-consume':'delta-neutral'; const sign=h.delta>0?'+':''; const armed=armedRecordId===h.id; return '<div class="history-item"><div class="history-main"><div class="history-name">'+escapeHtml(h.student)+'</div><div class="history-time">'+fmtTime(h.iso)+' · '+escapeHtml(h.action)+'</div></div><div class="history-actions"><div class="history-right"><div class="'+cls+'">'+sign+h.delta+' 节</div><div class="remaining">余 '+h.sessions+' 节</div></div><button class="history-delete-btn '+(armed?'armed':'')+'" onclick="deleteRecord(\''+h.id+'\')">'+(armed?'确认':'删除')+'</button></div></div>';}).join('');}
+async function deleteRecord(id){const h=records.find(x=>x.id===id); if(!h)return; if(armedRecordId!==id){armedRecordId=id; clearTimeout(recordDeleteTimer); recordDeleteTimer=setTimeout(()=>{armedRecordId=null;renderHistory();},3000); renderHistory(); return;} setLoading(true); try{if(h.sid){const s=students.find(x=>x.id===h.sid); if(s){const next=Math.max(0,Number(s.sessions)-Number(h.delta)); const {error:e1}=await client.from('students').update({sessions:next}).eq('id',s.id); if(e1)throw e1;}}
+ const {error:e2}=await client.from('records').delete().eq('id',id); if(e2)throw e2; armedRecordId=null; await refreshData();}catch(e){alert('删除记录失败：'+e.message);}finally{setLoading(false);}}
+function exportExcel(){if(!window.XLSX){alert('Excel 导出组件加载失败，请检查网络后重试。');return;} const studentRows=students.map(s=>({'学员姓名':s.name,'当前剩余课时':s.sessions,'创建时间':fmtTime(s.created_at)})); const recordRows=records.slice().sort((a,b)=>new Date(b.iso)-new Date(a.iso)).map(r=>({'时间':fmtTime(r.iso),'学员':r.student,'操作类型':r.action,'课时变化':r.delta,'操作后剩余课时':r.sessions})); const filteredRows=getFilteredRecords().map(r=>({'时间':fmtTime(r.iso),'学员':r.student,'操作类型':r.action,'课时变化':r.delta,'操作后剩余课时':r.sessions})); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(studentRows),'学员列表'); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(recordRows),'全部消课记录'); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(filteredRows),'当前筛选记录'); const d=new Date(); const fn='涛哥集训营_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'.xlsx'; XLSX.writeFile(wb,fn);}
+function checkMigration(){const box=document.getElementById('migrate-box'); if(!box)return; try{const raw=localStorage.getItem(OLD_STORAGE_KEY); if(!raw){box.classList.add('hidden');return;} const old=JSON.parse(raw); if(!old.students||!old.students.length){box.classList.add('hidden');return;} if(students.length>0){box.innerHTML='检测到本机旧版 localStorage 数据。当前云端已有数据，为避免重复导入，暂不自动迁移。'; box.classList.remove('hidden'); return;} box.innerHTML='检测到本机旧版数据，可导入云端。<br><br><button class="btn btn-primary" onclick="migrateLocalData()">导入本机旧数据到云端</button>'; box.classList.remove('hidden');}catch(e){box.classList.add('hidden');}}
+function normalizeOldRecord(r){let iso=r.iso||r.record_time||null; if(!iso){iso=new Date().toISOString();} return {oldSid:r.sid,student:r.student||'',action:r.action||'记录',delta:Number(r.delta)||0,sessions:Number(r.sessions)||0,iso};}
+async function migrateLocalData(){const raw=localStorage.getItem(OLD_STORAGE_KEY); if(!raw)return; const old=JSON.parse(raw); const oldStudents=Array.isArray(old.students)?old.students:[]; const oldRecords=Array.isArray(old.records)?old.records.map(normalizeOldRecord):[]; if(!oldStudents.length){alert('没有可导入的旧数据');return;} setLoading(true); try{const map={}; for(const os of oldStudents){const {data:s,error}=await client.from('students').insert({user_id:activeUserId(),name:os.name,sessions:Number(os.sessions)||0}).select().single(); if(error)throw error; map[os.id]=s.id;} const rows=oldRecords.map(r=>({user_id:activeUserId(),student_id:map[r.oldSid]||null,student_name:r.student,action:r.action,delta:r.delta,sessions:r.sessions,record_time:r.iso})); if(rows.length){const {error}=await client.from('records').insert(rows); if(error)throw error;} localStorage.setItem(OLD_STORAGE_KEY+'_migrated_'+Date.now(),raw); localStorage.removeItem(OLD_STORAGE_KEY); await refreshData(); alert('旧数据已导入云端');}catch(e){alert('导入失败：'+e.message);}finally{setLoading(false);}}
 
-function inferDateFromOldTime(timeText) {
-  var now = new Date();
-  if (!timeText) return nowISO();
-  var m = String(timeText).match(/(\d{1,4})\/(\d{1,2})(?:\/(\d{1,2}))?\s+(\d{1,2}):(\d{1,2})/);
-  if (!m) return nowISO();
-  var y, mo, day, h, mi;
-  if (m[3]) { y = parseInt(m[1]); mo = parseInt(m[2]); day = parseInt(m[3]); h = parseInt(m[4]); mi = parseInt(m[5]); }
-  else { y = now.getFullYear(); mo = parseInt(m[1]); day = parseInt(m[2]); h = parseInt(m[4]); mi = parseInt(m[5]); }
-  return new Date(y, mo - 1, day, h, mi, 0).toISOString();
-}
-
-function normalizeRecord(r) {
-  r = r || {};
-  if (!r.rid) r.rid = uid();
-  if (!r.createdAt) r.createdAt = inferDateFromOldTime(r.time);
-  if (!r.time) r.time = ts(r.createdAt);
-  if (typeof r.delta !== 'number') r.delta = parseInt(r.delta) || 0;
-  return r;
-}
-
-function addRecord(obj) {
-  var iso = nowISO();
-  var rec = Object.assign({ rid: uid(), createdAt: iso, time: ts(iso) }, obj || {});
-  records.unshift(normalizeRecord(rec));
-}
-
-function getRecordDate(r) {
-  return new Date((r && r.createdAt) || inferDateFromOldTime(r && r.time));
-}
-
-function showTab(t, el) {
-  activeTab = t;
-  document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
-  document.querySelectorAll('.page').forEach(function(x){ x.classList.remove('active'); });
-  el.classList.add('active');
-  document.getElementById('page-'+t).classList.add('active');
-  if (t === 'students') renderStudents();
-  if (t === 'checkin') renderCheckinSelect();
-  if (t === 'history') { renderHistoryFilter(); renderYearFilter(); renderMonthFilter(); renderHistory(); }
-}
-
-function updateStats() {
-  document.getElementById('s-total').textContent = students.length;
-  document.getElementById('s-sessions').textContent = students.reduce(function(a,s){ return a + s.sessions; }, 0);
-  document.getElementById('s-low').textContent = students.filter(function(s){ return s.sessions <= 3; }).length;
-}
-
-function renderStudents() {
-  updateStats();
-  var list = document.getElementById('student-list');
-  if (!students.length) {
-    list.innerHTML = '<div class="empty">暂无学员，请在上方添加</div>';
-    return;
-  }
-  list.innerHTML = students.map(function(s) {
-    return '<div class="card"><div class="student-item" style="border:none;padding:0">'
-      + '<div class="avatar">' + escapeHtml(initials(s.name)) + '</div>'
-      + '<div class="student-info"><div class="student-name">' + escapeHtml(s.name) + '</div>'
-      + '<div class="student-meta">剩余 <b>' + s.sessions + '</b> 节课时</div></div>'
-      + badgeHtml(s)
-      + '<button class="edit-btn" onclick="openEdit(\'' + s.id + '\')">编辑</button>'
-      + '</div></div>';
-  }).join('');
-}
-
-function addStudent() {
-  var nameEl = document.getElementById('new-name');
-  var sesEl = document.getElementById('new-sessions');
-  var name = nameEl.value.trim();
-  var sessions = parseInt(sesEl.value) || 0;
-  if (!name) { alert('请输入学员姓名'); return; }
-  var s = { id: uid(), name: name, sessions: sessions };
-  students.push(s);
-  addRecord({ student: s.name, sid: s.id, action: '初始录入', delta: sessions, sessions: sessions });
-  saveData();
-  nameEl.value = '';
-  sesEl.value = '';
-  renderStudents();
-}
-
-function openEdit(id) {
-  editId = id;
-  resetDeleteButton();
-  var s = students.find(function(x){ return x.id === id; });
-  document.getElementById('modal-title').textContent = '编辑课时 — ' + s.name;
-  document.getElementById('edit-total').value = s.sessions;
-  document.getElementById('edit-delta').value = '';
-  document.getElementById('modal-edit').classList.add('show');
-}
-
-function closeModal() {
-  document.getElementById('modal-edit').classList.remove('show');
-  resetDeleteButton();
-  editId = null;
-}
-
-function handleOverlayClick(e) {
-  if (e.target === document.getElementById('modal-edit')) closeModal();
-}
-
-function applyDelta() {
-  var delta = parseInt(document.getElementById('edit-delta').value) || 0;
-  if (!delta) { alert('请输入数量'); return; }
-  var s = students.find(function(x){ return x.id === editId; });
-  document.getElementById('edit-total').value = Math.max(0, s.sessions + delta);
-}
-
-function saveEdit() {
-  var total = parseInt(document.getElementById('edit-total').value);
-  if (isNaN(total) || total < 0) { alert('请输入有效的课时数'); return; }
-  var s = students.find(function(x){ return x.id === editId; });
-  var prev = s.sessions;
-  s.sessions = total;
-  var delta = total - prev;
-  if (delta !== 0) {
-    addRecord({ student: s.name, sid: s.id, action: delta > 0 ? '手动加课' : '手动退课', delta: delta, sessions: s.sessions });
-    saveData();
-  }
-  closeModal();
-  renderStudents();
-}
-
-function resetDeleteButton() {
-  deleteArmed = false;
-  if (deleteTimer) { clearTimeout(deleteTimer); deleteTimer = null; }
-  var btn = document.getElementById('delete-btn');
-  if (btn) btn.textContent = '删除该学员';
-}
-
-function deleteStudent() {
-  var s = students.find(function(x){ return x.id === editId; });
-  if (!s) return;
-  if (!deleteArmed) {
-    deleteArmed = true;
-    var btn = document.getElementById('delete-btn');
-    if (btn) btn.textContent = '再次点击确认删除';
-    deleteTimer = setTimeout(function(){ resetDeleteButton(); }, 3000);
-    return;
-  }
-  students = students.filter(function(x){ return x.id !== editId; });
-  addRecord({ student: s.name, sid: s.id, action: '删除学员', delta: 0, sessions: s.sessions });
-  saveData();
-  closeModal();
-  renderStudents();
-}
-
-function renderCheckinSelect() {
-  var sel = document.getElementById('checkin-select');
-  sel.innerHTML = '<option value="">-- 请选择上课学员 --</option>'
-    + students.map(function(s){ return '<option value="' + s.id + '">' + escapeHtml(s.name) + '（剩余' + s.sessions + '节）</option>'; }).join('');
-  document.getElementById('checkin-area').innerHTML = '';
-}
-
-function updateCheckin() {
-  var id = document.getElementById('checkin-select').value;
-  var area = document.getElementById('checkin-area');
-  if (!id) { area.innerHTML = ''; return; }
-  var s = students.find(function(x){ return x.id === id; });
-  if (s.sessions <= 0) {
-    area.innerHTML = '<div class="alert-box">该学员课时已用完，无法消课。<br>请先在学员页面为其加课。</div>';
-    return;
-  }
-  area.innerHTML = '<div class="checkin-panel" id="panel-' + id + '">'
-    + '<div class="checkin-name">' + escapeHtml(s.name) + '</div>'
-    + '<div class="checkin-sessions" id="csub-' + id + '">当前剩余 ' + s.sessions + ' 节课时</div>'
-    + '<div class="checkin-hint">请将手机递给学员<br>由学员本人点击下方按钮确认</div>'
-    + '<button class="confirm-btn confirm-btn-active" id="cbtn-' + id + '" onclick="confirmCheckin(\'' + id + '\')">确认本次上课，消耗 1 课时</button>'
-    + '</div>';
-}
-
-function confirmCheckin(id) {
-  var s = students.find(function(x){ return x.id === id; });
-  if (!s || s.sessions <= 0) return;
-  s.sessions = Math.max(0, s.sessions - 1);
-  addRecord({ student: s.name, sid: id, action: '上课打卡', delta: -1, sessions: s.sessions });
-  saveData();
-  var btn = document.getElementById('cbtn-' + id);
-  btn.textContent = '已确认签到  剩余 ' + s.sessions + ' 节';
-  btn.className = 'confirm-btn confirm-btn-done';
-  btn.disabled = true;
-  var sub = document.getElementById('csub-' + id);
-  if (sub) sub.textContent = '打卡成功，当前剩余 ' + s.sessions + ' 节';
-  var opt = document.getElementById('checkin-select').querySelector('option[value="' + id + '"]');
-  if (opt) opt.textContent = s.name + '（剩余' + s.sessions + '节）';
-  if (activeTab === 'students') updateStats();
-}
-
-function renderHistoryFilter() {
-  var sel = document.getElementById('history-filter');
-  var cur = sel.value;
-  sel.innerHTML = '<option value="">全部学员</option>'
-    + students.map(function(s){ return '<option value="' + s.id + '">' + escapeHtml(s.name) + '</option>'; }).join('');
-  if (cur) sel.value = cur;
-}
-
-function renderYearFilter() {
-  var sel = document.getElementById('history-year');
-  var cur = sel.value;
-  var years = records.map(function(r){ return getRecordDate(r).getFullYear(); })
-    .filter(function(y, i, arr){ return arr.indexOf(y) === i; })
-    .sort(function(a,b){ return b-a; });
-  sel.innerHTML = '<option value="">全部年份</option>' + years.map(function(y){ return '<option value="' + y + '">' + y + '年</option>'; }).join('');
-  if (cur && years.indexOf(parseInt(cur)) !== -1) sel.value = cur;
-}
-
-function renderMonthFilter() {
-  var year = document.getElementById('history-year').value;
-  var sel = document.getElementById('history-month');
-  var cur = sel.value;
-  var months = records.filter(function(r){ return !year || getRecordDate(r).getFullYear() == year; })
-    .map(function(r){ return getRecordDate(r).getMonth() + 1; })
-    .filter(function(m, i, arr){ return arr.indexOf(m) === i; })
-    .sort(function(a,b){ return a-b; });
-  sel.innerHTML = '<option value="">全部月份</option>' + months.map(function(m){ return '<option value="' + m + '">' + m + '月</option>'; }).join('');
-  if (cur && months.indexOf(parseInt(cur)) !== -1) sel.value = cur;
-}
-
-function getFilteredHistoryItems() {
-  var sid = document.getElementById('history-filter').value;
-  var year = document.getElementById('history-year').value;
-  var month = document.getElementById('history-month').value;
-  var action = document.getElementById('history-action').value;
-  return records.filter(function(h) {
-    var d = getRecordDate(h);
-    if (sid && h.sid !== sid) return false;
-    if (year && d.getFullYear() != year) return false;
-    if (month && (d.getMonth() + 1) != month) return false;
-    if (action && h.action !== action) return false;
-    return true;
-  });
-}
-
-function renderHistory() {
-  resetRecordDeleteButtons();
-  var items = getFilteredHistoryItems();
-  var list = document.getElementById('history-list');
-  if (!items.length) { list.innerHTML = '<div class="empty">暂无记录</div>'; return; }
-  var totalDelta = items.reduce(function(a,h){ return a + (h.delta || 0); }, 0);
-  var consumeCount = items.filter(function(h){ return h.action === '上课打卡'; }).length;
-  list.innerHTML = '<div class="summary-line">共 ' + items.length + ' 条记录 · 上课打卡 ' + consumeCount + ' 次 · 课时净变化 ' + (totalDelta > 0 ? '+' : '') + totalDelta + '</div>'
-    + items.map(function(h) {
-      var cls = h.delta > 0 ? 'delta-add' : h.delta < 0 ? 'delta-consume' : 'delta-neutral';
-      var sign = h.delta > 0 ? '+' : '';
-      return '<div class="history-item" id="record-' + h.rid + '">'
-        + '<div class="history-main"><div class="history-name">' + escapeHtml(h.student) + '</div>'
-        + '<div class="history-time">' + escapeHtml(h.time || ts(h.createdAt)) + ' · ' + escapeHtml(h.action) + '</div></div>'
-        + '<div class="history-actions"><div class="history-right"><div class="' + cls + '">' + sign + h.delta + ' 节</div>'
-        + '<div class="remaining">余 ' + h.sessions + ' 节</div></div>'
-        + '<button class="history-delete-btn" id="delete-record-' + h.rid + '" onclick="deleteHistoryRecord(\'' + h.rid + '\')">删除</button></div></div>';
-    }).join('');
-}
-
-function resetRecordDeleteButtons() {
-  armedRecordId = null;
-  if (recordDeleteTimer) { clearTimeout(recordDeleteTimer); recordDeleteTimer = null; }
-  document.querySelectorAll('.history-delete-btn').forEach(function(btn){ btn.textContent = '删除'; btn.classList.remove('armed'); });
-}
-
-function deleteHistoryRecord(rid) {
-  var r = records.find(function(x){ return x.rid === rid; });
-  if (!r) return;
-  if (armedRecordId !== rid) {
-    resetRecordDeleteButtons();
-    armedRecordId = rid;
-    var btn = document.getElementById('delete-record-' + rid);
-    if (btn) { btn.textContent = '确认'; btn.classList.add('armed'); }
-    recordDeleteTimer = setTimeout(function(){ resetRecordDeleteButtons(); }, 3000);
-    return;
-  }
-
-  if (r.delta && r.sid) {
-    var s = students.find(function(x){ return x.id === r.sid; });
-    if (s) {
-      s.sessions = Math.max(0, s.sessions - r.delta);
-    }
-  }
-  records = records.filter(function(x){ return x.rid !== rid; });
-  saveData();
-  renderStudents();
-  renderYearFilter();
-  renderMonthFilter();
-  renderHistory();
-}
-
-loadData();
-renderStudents();
+(async function init(){const {data}=await client.auth.getSession(); if(data.session&&data.session.user){await enterApp(data.session.user);} else {document.getElementById('auth-page').classList.remove('hidden');}})();
+client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session&&session.user){currentUser=session.user;}});
 </script>
 </body>
 </html>
