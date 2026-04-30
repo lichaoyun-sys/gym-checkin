@@ -143,7 +143,7 @@ input:focus,select:focus{border-color:#378ADD}
       <button class="btn btn-primary" onclick="saveEdit()">保存</button>
     </div>
     <div class="divider"></div>
-    <button class="btn btn-danger" onclick="deleteStudent()">删除该学员</button>
+    <button class="btn btn-danger" id="delete-btn" onclick="deleteStudent()">删除该学员</button>
   </div>
 </div>
 
@@ -153,6 +153,8 @@ var students = [];
 var records = [];
 var editId = null;
 var activeTab = 'students';
+var deleteArmed = false;
+var deleteTimer = null;
 
 function loadData() {
   try {
@@ -242,6 +244,7 @@ function addStudent() {
 
 function openEdit(id) {
   editId = id;
+  resetDeleteButton();
   var s = students.find(function(x){ return x.id === id; });
   document.getElementById('modal-title').textContent = '编辑课时 — ' + s.name;
   document.getElementById('edit-total').value = s.sessions;
@@ -251,6 +254,7 @@ function openEdit(id) {
 
 function closeModal() {
   document.getElementById('modal-edit').classList.remove('show');
+  resetDeleteButton();
   editId = null;
 }
 
@@ -280,10 +284,28 @@ function saveEdit() {
   renderStudents();
 }
 
+function resetDeleteButton() {
+  deleteArmed = false;
+  if (deleteTimer) { clearTimeout(deleteTimer); deleteTimer = null; }
+  var btn = document.getElementById('delete-btn');
+  if (btn) btn.textContent = '删除该学员';
+}
+
 function deleteStudent() {
   var s = students.find(function(x){ return x.id === editId; });
-  if (!confirm('确认删除"' + s.name + '"？')) return;
+  if (!s) return;
+
+  // 微信内置浏览器里原生 confirm 有时不会稳定弹出，改成二次点击确认，更适合手机端。
+  if (!deleteArmed) {
+    deleteArmed = true;
+    var btn = document.getElementById('delete-btn');
+    if (btn) btn.textContent = '再次点击确认删除';
+    deleteTimer = setTimeout(function(){ resetDeleteButton(); }, 3000);
+    return;
+  }
+
   students = students.filter(function(x){ return x.id !== editId; });
+  records.unshift({ time: ts(), student: s.name, sid: s.id, action: '删除学员', delta: 0, sessions: s.sessions });
   saveData();
   closeModal();
   renderStudents();
