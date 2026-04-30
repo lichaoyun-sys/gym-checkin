@@ -71,6 +71,15 @@ input:focus,select:focus{border-color:#378ADD}
 .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .empty{text-align:center;padding:40px 20px;color:#bbb;font-size:14px}
 .alert-box{padding:12px 14px;border-radius:10px;font-size:14px;margin-top:12px;color:#A32D2D;background:#FCEBEB;line-height:1.6}
+
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.filter-grid select{font-size:14px}
+.filter-hint{font-size:11px;color:#aaa;line-height:1.5;margin-top:4px}
+.history-main{flex:1;min-width:0;padding-right:10px}
+.history-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.history-delete-btn{padding:6px 10px;border-radius:8px;border:1px solid #F1C5C5;background:#fff;color:#A32D2D;font-size:12px;cursor:pointer;white-space:nowrap}
+.history-delete-btn.armed{background:#FCEBEB;font-weight:600}
+.summary-line{font-size:12px;color:#999;margin:0 0 10px 0}
 </style>
 </head>
 <body>
@@ -114,9 +123,28 @@ input:focus,select:focus{border-color:#378ADD}
 
   <div id="page-history" class="page">
     <div class="card" style="margin-bottom:12px">
-      <select id="history-filter" onchange="renderHistory()">
-        <option value="">全部学员</option>
-      </select>
+      <div class="filter-grid">
+        <select id="history-filter" onchange="renderHistory()">
+          <option value="">全部学员</option>
+        </select>
+        <select id="history-year" onchange="renderMonthFilter(); renderHistory()">
+          <option value="">全部年份</option>
+        </select>
+      </div>
+      <div class="filter-grid" style="margin-bottom:0">
+        <select id="history-month" onchange="renderHistory()">
+          <option value="">全部月份</option>
+        </select>
+        <select id="history-action" onchange="renderHistory()">
+          <option value="">全部类型</option>
+          <option value="上课打卡">上课打卡</option>
+          <option value="手动加课">手动加课</option>
+          <option value="手动退课">手动退课</option>
+          <option value="初始录入">初始录入</option>
+          <option value="删除学员">删除学员</option>
+        </select>
+      </div>
+      <div class="filter-hint">删除记录会同时撤销该记录对应的课时变化。例如删除一次“上课打卡”，会把该学员课时加回 1 节。</div>
     </div>
     <div class="card" id="history-list"></div>
   </div>
@@ -155,6 +183,8 @@ var editId = null;
 var activeTab = 'students';
 var deleteArmed = false;
 var deleteTimer = null;
+var armedRecordId = null;
+var recordDeleteTimer = null;
 
 function loadData() {
   try {
@@ -163,6 +193,7 @@ function loadData() {
     var data = JSON.parse(raw);
     students = Array.isArray(data.students) ? data.students : [];
     records = Array.isArray(data.records) ? data.records : [];
+    records = records.map(normalizeRecord);
   } catch (e) {
     console.warn('读取本地数据失败', e);
     students = [];
@@ -180,16 +211,52 @@ function saveData() {
 }
 
 function uid() { return Date.now() + '_' + Math.random().toString(36).slice(2); }
-function ts() {
-  var d = new Date();
-  return (d.getMonth()+1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-}
 function pad(n) { return n < 10 ? '0'+n : ''+n; }
+function nowISO() { return new Date().toISOString(); }
+function ts(iso) {
+  var d = iso ? new Date(iso) : new Date();
+  return d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>'"]/g, function(ch) {
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[ch];
+  });
+}
 function initials(name) { return (name||'').slice(0,2); }
 function badgeHtml(s) {
   if (s.sessions <= 0) return '<span class="badge badge-empty">已用完</span>';
   if (s.sessions <= 3) return '<span class="badge badge-low">即将用完</span>';
   return '<span class="badge badge-ok">正常</span>';
+}
+
+function inferDateFromOldTime(timeText) {
+  var now = new Date();
+  if (!timeText) return nowISO();
+  var m = String(timeText).match(/(\d{1,4})\/(\d{1,2})(?:\/(\d{1,2}))?\s+(\d{1,2}):(\d{1,2})/);
+  if (!m) return nowISO();
+  var y, mo, day, h, mi;
+  if (m[3]) { y = parseInt(m[1]); mo = parseInt(m[2]); day = parseInt(m[3]); h = parseInt(m[4]); mi = parseInt(m[5]); }
+  else { y = now.getFullYear(); mo = parseInt(m[1]); day = parseInt(m[2]); h = parseInt(m[4]); mi = parseInt(m[5]); }
+  return new Date(y, mo - 1, day, h, mi, 0).toISOString();
+}
+
+function normalizeRecord(r) {
+  r = r || {};
+  if (!r.rid) r.rid = uid();
+  if (!r.createdAt) r.createdAt = inferDateFromOldTime(r.time);
+  if (!r.time) r.time = ts(r.createdAt);
+  if (typeof r.delta !== 'number') r.delta = parseInt(r.delta) || 0;
+  return r;
+}
+
+function addRecord(obj) {
+  var iso = nowISO();
+  var rec = Object.assign({ rid: uid(), createdAt: iso, time: ts(iso) }, obj || {});
+  records.unshift(normalizeRecord(rec));
+}
+
+function getRecordDate(r) {
+  return new Date((r && r.createdAt) || inferDateFromOldTime(r && r.time));
 }
 
 function showTab(t, el) {
@@ -200,7 +267,7 @@ function showTab(t, el) {
   document.getElementById('page-'+t).classList.add('active');
   if (t === 'students') renderStudents();
   if (t === 'checkin') renderCheckinSelect();
-  if (t === 'history') { renderHistoryFilter(); renderHistory(); }
+  if (t === 'history') { renderHistoryFilter(); renderYearFilter(); renderMonthFilter(); renderHistory(); }
 }
 
 function updateStats() {
@@ -218,8 +285,8 @@ function renderStudents() {
   }
   list.innerHTML = students.map(function(s) {
     return '<div class="card"><div class="student-item" style="border:none;padding:0">'
-      + '<div class="avatar">' + initials(s.name) + '</div>'
-      + '<div class="student-info"><div class="student-name">' + s.name + '</div>'
+      + '<div class="avatar">' + escapeHtml(initials(s.name)) + '</div>'
+      + '<div class="student-info"><div class="student-name">' + escapeHtml(s.name) + '</div>'
       + '<div class="student-meta">剩余 <b>' + s.sessions + '</b> 节课时</div></div>'
       + badgeHtml(s)
       + '<button class="edit-btn" onclick="openEdit(\'' + s.id + '\')">编辑</button>'
@@ -235,7 +302,7 @@ function addStudent() {
   if (!name) { alert('请输入学员姓名'); return; }
   var s = { id: uid(), name: name, sessions: sessions };
   students.push(s);
-  records.unshift({ time: ts(), student: s.name, sid: s.id, action: '初始录入', delta: sessions, sessions: sessions });
+  addRecord({ student: s.name, sid: s.id, action: '初始录入', delta: sessions, sessions: sessions });
   saveData();
   nameEl.value = '';
   sesEl.value = '';
@@ -277,7 +344,7 @@ function saveEdit() {
   s.sessions = total;
   var delta = total - prev;
   if (delta !== 0) {
-    records.unshift({ time: ts(), student: s.name, sid: s.id, action: delta > 0 ? '手动加课' : '手动退课', delta: delta, sessions: s.sessions });
+    addRecord({ student: s.name, sid: s.id, action: delta > 0 ? '手动加课' : '手动退课', delta: delta, sessions: s.sessions });
     saveData();
   }
   closeModal();
@@ -294,8 +361,6 @@ function resetDeleteButton() {
 function deleteStudent() {
   var s = students.find(function(x){ return x.id === editId; });
   if (!s) return;
-
-  // 微信内置浏览器里原生 confirm 有时不会稳定弹出，改成二次点击确认，更适合手机端。
   if (!deleteArmed) {
     deleteArmed = true;
     var btn = document.getElementById('delete-btn');
@@ -303,9 +368,8 @@ function deleteStudent() {
     deleteTimer = setTimeout(function(){ resetDeleteButton(); }, 3000);
     return;
   }
-
   students = students.filter(function(x){ return x.id !== editId; });
-  records.unshift({ time: ts(), student: s.name, sid: s.id, action: '删除学员', delta: 0, sessions: s.sessions });
+  addRecord({ student: s.name, sid: s.id, action: '删除学员', delta: 0, sessions: s.sessions });
   saveData();
   closeModal();
   renderStudents();
@@ -314,7 +378,7 @@ function deleteStudent() {
 function renderCheckinSelect() {
   var sel = document.getElementById('checkin-select');
   sel.innerHTML = '<option value="">-- 请选择上课学员 --</option>'
-    + students.map(function(s){ return '<option value="' + s.id + '">' + s.name + '（剩余' + s.sessions + '节）</option>'; }).join('');
+    + students.map(function(s){ return '<option value="' + s.id + '">' + escapeHtml(s.name) + '（剩余' + s.sessions + '节）</option>'; }).join('');
   document.getElementById('checkin-area').innerHTML = '';
 }
 
@@ -328,7 +392,7 @@ function updateCheckin() {
     return;
   }
   area.innerHTML = '<div class="checkin-panel" id="panel-' + id + '">'
-    + '<div class="checkin-name">' + s.name + '</div>'
+    + '<div class="checkin-name">' + escapeHtml(s.name) + '</div>'
     + '<div class="checkin-sessions" id="csub-' + id + '">当前剩余 ' + s.sessions + ' 节课时</div>'
     + '<div class="checkin-hint">请将手机递给学员<br>由学员本人点击下方按钮确认</div>'
     + '<button class="confirm-btn confirm-btn-active" id="cbtn-' + id + '" onclick="confirmCheckin(\'' + id + '\')">确认本次上课，消耗 1 课时</button>'
@@ -337,8 +401,9 @@ function updateCheckin() {
 
 function confirmCheckin(id) {
   var s = students.find(function(x){ return x.id === id; });
+  if (!s || s.sessions <= 0) return;
   s.sessions = Math.max(0, s.sessions - 1);
-  records.unshift({ time: ts(), student: s.name, sid: id, action: '上课打卡', delta: -1, sessions: s.sessions });
+  addRecord({ student: s.name, sid: id, action: '上课打卡', delta: -1, sessions: s.sessions });
   saveData();
   var btn = document.getElementById('cbtn-' + id);
   btn.textContent = '已确认签到  剩余 ' + s.sessions + ' 节';
@@ -355,24 +420,97 @@ function renderHistoryFilter() {
   var sel = document.getElementById('history-filter');
   var cur = sel.value;
   sel.innerHTML = '<option value="">全部学员</option>'
-    + students.map(function(s){ return '<option value="' + s.id + '">' + s.name + '</option>'; }).join('');
+    + students.map(function(s){ return '<option value="' + s.id + '">' + escapeHtml(s.name) + '</option>'; }).join('');
   if (cur) sel.value = cur;
 }
 
+function renderYearFilter() {
+  var sel = document.getElementById('history-year');
+  var cur = sel.value;
+  var years = records.map(function(r){ return getRecordDate(r).getFullYear(); })
+    .filter(function(y, i, arr){ return arr.indexOf(y) === i; })
+    .sort(function(a,b){ return b-a; });
+  sel.innerHTML = '<option value="">全部年份</option>' + years.map(function(y){ return '<option value="' + y + '">' + y + '年</option>'; }).join('');
+  if (cur && years.indexOf(parseInt(cur)) !== -1) sel.value = cur;
+}
+
+function renderMonthFilter() {
+  var year = document.getElementById('history-year').value;
+  var sel = document.getElementById('history-month');
+  var cur = sel.value;
+  var months = records.filter(function(r){ return !year || getRecordDate(r).getFullYear() == year; })
+    .map(function(r){ return getRecordDate(r).getMonth() + 1; })
+    .filter(function(m, i, arr){ return arr.indexOf(m) === i; })
+    .sort(function(a,b){ return a-b; });
+  sel.innerHTML = '<option value="">全部月份</option>' + months.map(function(m){ return '<option value="' + m + '">' + m + '月</option>'; }).join('');
+  if (cur && months.indexOf(parseInt(cur)) !== -1) sel.value = cur;
+}
+
+function getFilteredHistoryItems() {
+  var sid = document.getElementById('history-filter').value;
+  var year = document.getElementById('history-year').value;
+  var month = document.getElementById('history-month').value;
+  var action = document.getElementById('history-action').value;
+  return records.filter(function(h) {
+    var d = getRecordDate(h);
+    if (sid && h.sid !== sid) return false;
+    if (year && d.getFullYear() != year) return false;
+    if (month && (d.getMonth() + 1) != month) return false;
+    if (action && h.action !== action) return false;
+    return true;
+  });
+}
+
 function renderHistory() {
-  var filter = document.getElementById('history-filter').value;
-  var items = filter ? records.filter(function(h){ return h.sid === filter; }) : records;
+  resetRecordDeleteButtons();
+  var items = getFilteredHistoryItems();
   var list = document.getElementById('history-list');
   if (!items.length) { list.innerHTML = '<div class="empty">暂无记录</div>'; return; }
-  list.innerHTML = items.map(function(h) {
-    var cls = h.delta > 0 ? 'delta-add' : h.delta < 0 ? 'delta-consume' : 'delta-neutral';
-    var sign = h.delta > 0 ? '+' : '';
-    return '<div class="history-item">'
-      + '<div><div class="history-name">' + h.student + '</div>'
-      + '<div class="history-time">' + h.time + ' · ' + h.action + '</div></div>'
-      + '<div class="history-right"><div class="' + cls + '">' + sign + h.delta + ' 节</div>'
-      + '<div class="remaining">余 ' + h.sessions + ' 节</div></div></div>';
-  }).join('');
+  var totalDelta = items.reduce(function(a,h){ return a + (h.delta || 0); }, 0);
+  var consumeCount = items.filter(function(h){ return h.action === '上课打卡'; }).length;
+  list.innerHTML = '<div class="summary-line">共 ' + items.length + ' 条记录 · 上课打卡 ' + consumeCount + ' 次 · 课时净变化 ' + (totalDelta > 0 ? '+' : '') + totalDelta + '</div>'
+    + items.map(function(h) {
+      var cls = h.delta > 0 ? 'delta-add' : h.delta < 0 ? 'delta-consume' : 'delta-neutral';
+      var sign = h.delta > 0 ? '+' : '';
+      return '<div class="history-item" id="record-' + h.rid + '">'
+        + '<div class="history-main"><div class="history-name">' + escapeHtml(h.student) + '</div>'
+        + '<div class="history-time">' + escapeHtml(h.time || ts(h.createdAt)) + ' · ' + escapeHtml(h.action) + '</div></div>'
+        + '<div class="history-actions"><div class="history-right"><div class="' + cls + '">' + sign + h.delta + ' 节</div>'
+        + '<div class="remaining">余 ' + h.sessions + ' 节</div></div>'
+        + '<button class="history-delete-btn" id="delete-record-' + h.rid + '" onclick="deleteHistoryRecord(\'' + h.rid + '\')">删除</button></div></div>';
+    }).join('');
+}
+
+function resetRecordDeleteButtons() {
+  armedRecordId = null;
+  if (recordDeleteTimer) { clearTimeout(recordDeleteTimer); recordDeleteTimer = null; }
+  document.querySelectorAll('.history-delete-btn').forEach(function(btn){ btn.textContent = '删除'; btn.classList.remove('armed'); });
+}
+
+function deleteHistoryRecord(rid) {
+  var r = records.find(function(x){ return x.rid === rid; });
+  if (!r) return;
+  if (armedRecordId !== rid) {
+    resetRecordDeleteButtons();
+    armedRecordId = rid;
+    var btn = document.getElementById('delete-record-' + rid);
+    if (btn) { btn.textContent = '确认'; btn.classList.add('armed'); }
+    recordDeleteTimer = setTimeout(function(){ resetRecordDeleteButtons(); }, 3000);
+    return;
+  }
+
+  if (r.delta && r.sid) {
+    var s = students.find(function(x){ return x.id === r.sid; });
+    if (s) {
+      s.sessions = Math.max(0, s.sessions - r.delta);
+    }
+  }
+  records = records.filter(function(x){ return x.rid !== rid; });
+  saveData();
+  renderStudents();
+  renderYearFilter();
+  renderMonthFilter();
+  renderHistory();
 }
 
 loadData();
